@@ -1,253 +1,54 @@
-# j03
+# J04
 
-本仓库提供了一个简单的游戏引擎，请完善该引擎或重新实现自己的引擎，并开发一个葫芦娃与妖精的对战游戏。游戏录屏发小破站。
+本仓库提供了一个基于Java Swing的简单游戏引擎，并演示了如何使用多线程并发来优化游戏性能。本项目适合用于学习游戏引擎原理和多线程编程。
 
 ---
 
-# 简单Java游戏引擎
+## 游戏逻辑说明
 
-一个基于Java Swing的简单游戏引擎，提供了基本的游戏开发功能。
+这是一个躲避游戏：用户玩家（绿色方块）使用WASD或方向键控制移动，需要躲避所有AI玩家（蓝绿色方块）。游戏开始时会有30个AI玩家，每隔1秒会新增一个。AI玩家会随机移动，当彼此距离小于80像素时会互相避开，碰到屏幕边界会反弹。如果用户玩家与任何AI玩家碰撞，游戏立即结束并显示"GAME OVER"。游戏分辨率为1920x1080。
 
-## 功能特性
+---
 
-- **核心引擎**: 游戏循环、场景管理、对象生命周期管理
-- **渲染系统**: 基于Swing的2D渲染，支持矩形、圆形、线条绘制
-- **输入处理**: 键盘和鼠标输入管理
-- **数学工具**: 2D向量运算
-- **场景管理**: 游戏对象的添加、移除、查找
-- **碰撞检测**: 基本的距离检测
-- **组件系统**: 基于泛型的组件-实体系统(ECS)
+## 并行处理优化
 
-## 项目结构
+随着AI玩家数量不断增加，游戏需要处理的物理计算和避障计算呈线性增长。如果使用串行处理，当AI玩家数量达到50、100甚至更多时，每一帧的计算时间会急剧增加，导致游戏帧率下降。本版本在上一版本的基础上，增加了两个关键的并行处理模块：1) **并行物理计算**（`updatePhysics()`）：使用`ExecutorService`创建线程池，将物理组件按批次分配给不同线程，每个线程独立更新自己批次内的物理组件（位置、速度、边界碰撞检测），使用`Future`等待所有线程完成；2) **自适应并行避障计算**（`handleAIPlayerAvoidance()`）：当AI玩家数量小于10个时使用串行处理避免线程开销，大于等于10个时使用并行处理，将AI玩家分批处理避障计算。在并行处理中需要注意线程安全：确保每个物理组件只被一个线程更新，`Vector2`对象返回副本避免共享可变对象，使用`Future.get()`确保所有线程完成后再继续。
 
-```
-src/main/java/com/gameengine/
-├── core/           # 核心引擎类
-│   ├── GameEngine.java    # 游戏引擎主类
-│   ├── GameObject.java    # 游戏对象基类
-│   ├── Component.java    # 组件基类
-│   └── GameLogic.java    # 游戏规则处理
-├── components/     # 组件系统
-│   ├── TransformComponent.java  # 变换组件
-│   ├── PhysicsComponent.java    # 物理组件
-│   └── RenderComponent.java     # 渲染组件
-├── graphics/       # 渲染系统
-│   └── Renderer.java      # 渲染器
-├── input/          # 输入处理
-│   └── InputManager.java  # 输入管理器
-├── math/           # 数学工具
-│   └── Vector2.java       # 2D向量类
-├── scene/          # 场景管理
-│   └── Scene.java         # 场景类
-└── example/        # 示例代码
-    └── GameExample.java   # 主程序入口
-```
+---
 
-## 快速开始
+## 作业要求
 
-### 1. 环境要求
+### 任务
 
-- Java 11 或更高版本
+请分析你自己游戏中的性能问题，并参考本项目的并行处理实现，为你的游戏添加多线程并行优化。
 
-### 2. 运行示例
+### 要求
 
-```bash
-# 编译并运行游戏
-./run.sh
+1. **性能分析**：
+   - 找出你游戏中计算量大的部分
+   - 分析哪些计算可以并行化（独立计算，不依赖其他计算结果）
+   - 估算并行化后可能带来的性能提升
 
-# 或者分步执行
-./compile.sh
-java -cp build/classes com.gameengine.example.GameExample
-```
+2. **实现并行处理**：
+   - 参考本项目中使用 `ExecutorService` 的实现方式
+   - 使用线程池管理线程，而不是直接创建 `Thread` 对象
+   - 合理划分批次大小，平衡线程开销和并行收益
+   - 注意线程安全问题，确保共享数据的一致性
 
-### 3. 游戏控制
+3. **性能测试**：
+   - 对比并行化前后的帧率或计算时间
+   - 分析并行化的效果（是否提升了性能？提升了多少？）
 
-- **WASD** 或 **方向键**: 移动玩家（绿色方块）
-- 玩家需要避免与橙色敌人碰撞
-- 碰撞后玩家会重置到中心位置
+### ⚠️ 重要提醒
 
-## 使用指南
+**你必须手工编写并行处理的代码因为考试会考！**
 
-### 组件系统(ECS)
+### 提交要求
 
-这个引擎使用组件-实体系统(ECS)设计模式：
-
-```java
-// 创建游戏对象
-GameObject player = new GameObject("Player");
-
-// 添加变换组件
-TransformComponent transform = player.addComponent(
-    new TransformComponent(new Vector2(100, 100))
-);
-
-// 添加渲染组件
-RenderComponent render = player.addComponent(
-    new RenderComponent(
-        RenderComponent.RenderType.RECTANGLE,
-        new Vector2(20, 20),
-        new RenderComponent.Color(0.0f, 1.0f, 0.0f, 1.0f)
-    )
-);
-
-// 添加物理组件
-PhysicsComponent physics = player.addComponent(
-    new PhysicsComponent(1.0f)
-);
-```
-
-### 创建自定义场景
-
-```java
-Scene gameScene = new Scene("MyGameScene") {
-    private GameLogic gameLogic;
-    
-    @Override
-    public void initialize() {
-        super.initialize();
-        this.gameLogic = new GameLogic(this);
-        
-        // 创建游戏对象
-        createPlayer();
-        createEnemies();
-    }
-    
-    @Override
-    public void update(float deltaTime) {
-        super.update(deltaTime);
-        
-        // 使用游戏逻辑类处理游戏规则
-        gameLogic.handlePlayerInput();
-        gameLogic.updatePhysics();
-        gameLogic.checkCollisions();
-    }
-    
-    private void createPlayer() {
-        // 创建玩家逻辑
-    }
-    
-    private void createEnemies() {
-        // 创建敌人逻辑
-    }
-};
-```
-
-### 使用游戏逻辑类
-
-```java
-// 创建游戏逻辑实例
-GameLogic gameLogic = new GameLogic(scene);
-
-// 在场景更新中调用游戏逻辑
-@Override
-public void update(float deltaTime) {
-    super.update(deltaTime);
-    
-    // 处理玩家输入
-    gameLogic.handlePlayerInput();
-    
-    // 更新物理系统
-    gameLogic.updatePhysics();
-    
-    // 检查碰撞
-    gameLogic.checkCollisions();
-}
-```
-
-### 处理输入
-
-```java
-InputManager input = InputManager.getInstance();
-
-// 检查按键是否被按下
-if (input.isKeyPressed(87)) { // W键
-    // 处理W键按下
-}
-
-// 检查方向键
-if (input.isKeyPressed(38)) { // 上箭头
-    // 处理上箭头按下
-}
-
-// 获取鼠标位置
-Vector2 mousePos = input.getMousePosition();
-```
-
-### 渲染图形
-
-```java
-// 绘制矩形
-renderer.drawRect(x, y, width, height, r, g, b, a);
-
-// 绘制圆形
-renderer.drawCircle(x, y, radius, r, g, b, a);
-
-// 绘制线条
-renderer.drawLine(x1, y1, x2, y2, r, g, b, a);
-```
-
-## 示例游戏说明
-
-示例游戏是一个简单的躲避游戏：
-
-- 玩家（绿色方块）可以通过WASD或方向键移动
-- 敌人（橙色方块）会随机移动
-- 玩家需要避免与敌人碰撞
-- 碰撞后玩家会重置到中心位置
-- 蓝色小圆点是装饰元素
-
-## 架构设计
-
-### 职责分离
-
-```
-GameExample (游戏设定)
-    ↓ 使用
-GameLogic (游戏规则)
-    ↓ 操作
-Scene (场景管理)
-    ↓ 管理
-GameObject + Components (游戏对象)
-```
-
-### 核心组件
-
-- **GameEngine**: 游戏引擎主类，管理游戏循环
-- **Scene**: 场景管理，负责游戏对象的生命周期
-- **GameLogic**: 游戏规则处理，包含输入、物理、碰撞逻辑
-- **GameObject**: 游戏对象基类，使用组件系统
-- **Component**: 组件基类，实现ECS架构
-
-### 设计优势
-
-- **单一职责**: 每个类职责明确
-- **易于扩展**: 可以轻松添加新的游戏规则
-- **代码复用**: GameLogic可以在不同场景中重用
-- **维护性**: 游戏逻辑集中管理
-- **测试性**: 可以独立测试游戏逻辑
-
-## 扩展功能
-
-这个游戏引擎提供了基础功能，你可以在此基础上扩展：
-
-- 添加纹理和精灵渲染
-- 实现更复杂的物理系统
-- 添加音频支持
-- 实现粒子系统
-- 添加UI系统
-- 实现资源管理
-- 添加更多组件类型
-
-## 技术特点
-
-- **无外部依赖**: 只使用Java标准库
-- **简单构建**: 使用shell脚本编译，无需Maven
-- **组件化设计**: 基于ECS架构，易于扩展
-- **职责分离**: Scene负责场景管理，GameLogic负责游戏规则
-- **跨平台**: 基于Swing，支持所有Java平台
-- **易于维护**: 代码结构清晰，职责明确
-
-## 许可证
-
-本项目仅供学习和参考使用。
+- 在代码中清晰标注你实现的并行处理部分
+- 在README中说明：
+  - 你识别了哪些性能瓶颈
+  - 如何实现并行化
+  - 并行化前后的性能对比
+- 游戏录屏发小破站
 

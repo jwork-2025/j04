@@ -52,7 +52,7 @@ public class GameExample {
                         return;
                     }
                     
-                    if (time >= 2.0f) {
+                    if (time >= 1.0f) {
                         createAIPlayer();
                         time = 0;
                     }
